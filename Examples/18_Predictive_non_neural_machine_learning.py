@@ -3,7 +3,7 @@
 # Several ML models can be applied to forecasting: neural networks, but also decision trees, support vector machines (SVMs), Bayesian networks, and others.
 
 ### Support Vector Machines (SVM)
-# SVM are machine learning classifiers which, given labeled training data (supervised learning), compute an optimal hyperplane which separates (categorizes) the examples.
+# SVM are machine learning CLASSIFIERS which, given labeled training data (supervised learning), compute an optimal hyperplane which separates (categorizes) the examples.
 
 ### Support Vector Regression (SVR) with ε-insensitive loss function (Vapnik, 1995) allows a tolerance degree to errors not greater than ε.
 
@@ -49,7 +49,7 @@ print(y_pred)
 #       -AdaBoosting, Gradient Boosting, XGBoosting
 # - Bagging: Training a bunch of models in parallel. Each model learns from a random subset of the data, where the dataset is same size as original but is randomly sampled with replacement (bootstrapped)
 
-### BOOSTING 
+######## BOOSTING 
 
 ## Gradient Boosting Decision Trees (GBDT)
 # combine many weak learners to come up with one strong learner
@@ -111,12 +111,13 @@ plt.title('XGBoost forecast')
 plt.show()
 
 
-### BAGGING (parallel)
+######## BAGGING (parallel)
 # Bagging is a parallel ensemble technique that combines the predictions from multiple independent models.
 # Decision trees are sensitive to the specific data used to train the model, to overcome this, we can use a technique called bootstrap aggregating or bagging.
 # Bagging involves training multiple models on different subsets of the training data and combining their predictions.
 
-# Random Forest is a bagging method that use a randomly sampled subset of the training data to train multiple decision trees.
+### RANDOM FOREST
+# Is a bagging method that use a randomly sampled subset of the training data to train multiple decision trees.
 # It also uses a random subset of features at each split to reduce the correlation between the trees.
 # Can be used both for classification and regression problems
 
