@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense, Dropout
 from pmdarima.arima import auto_arima
 
 def load_data():
@@ -85,11 +85,15 @@ def sequential_lstm(ds, train_perc, look_back=1):
     trainX, trainY = create_dataset(train_scaled, look_back)
     testX, testY = create_dataset(np.concatenate((train_scaled[-look_back:], test_scaled)), look_back)
 
-    # Creo il modello LSTM
+   # Creo il modello LSTM
     model = Sequential()
-    model.add(LSTM(50, return_sequences=True, input_shape=(look_back, 1)))
-    model.add(LSTM(50))
-    model.add(Dense(1, activation='relu')) # aggiungo la funzione di attivazione relu all'ultimo layer, non voglio avere valori negativi
+    model.add(LSTM(100, return_sequences=True, input_shape=(look_back, 1)))
+    model.add(Dropout(0.2))
+    model.add(LSTM(100, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(100))
+    model.add(Dropout(0.2))
+    model.add(Dense(1, activation='relu'))  # Usa ReLU per garantire output non negativi
     model.compile(loss='mean_squared_error', optimizer='adam')
 
     # Addestro il modello
@@ -141,9 +145,9 @@ def main():
         if method == 1:
             auto_arima(ds, train_perc, seasonal=False)
         elif method == 2:
-            auto_arima(ds, train_perc, seasonal=False)
-        elif method == 2:
-            sequential_lstm(ds, train_perc, look_back=26)
+            auto_arima(ds, train_perc, seasonal=True)
+        elif method == 3:
+            sequential_lstm(ds, train_perc, look_back=52)
         elif method == 0:
             break
         else:
