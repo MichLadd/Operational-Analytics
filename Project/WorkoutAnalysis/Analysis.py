@@ -3,10 +3,14 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import acf 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 from pmdarima.arima import auto_arima
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' # Suppress TensorFlow warnings
 
 def load_data():
     # Load the data
@@ -46,6 +50,9 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
     plt.grid(True)
     plt.show()
 
+############################################################################################################
+### STATISTICAL METHODS
+
 ### ARIMA
 
 def auto_arima(ds, train_perc, seasonal=True):
@@ -65,7 +72,7 @@ def auto_arima(ds, train_perc, seasonal=True):
     forecast_accuracy(test_predict, test)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='sarima')
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima')
 
 ### SARIMA Grid Search
 
@@ -116,17 +123,42 @@ def sarima_grid_search(ds, train_perc):
     print(best_model.summary())
     
     train_predict = best_model.predict(start=0, end=train_size-1)
-    test_predict = best_model.predict(test.shape[0], return_conf_int=True) 
+    test_predict = best_model.predict(test.shape[0], return_conf_int=True) # test.shape[0] indica il numero di step da prevedere ovvero la lunghezza del test set
     
     forecast_accuracy(test_predict, test)
 
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search')
 
+### Holt Winter’s Exponential Smoothing (HWES)
+
+def holtwinters(ds, train_perc):
+    train_size = int(len(ds) * train_perc)
+    train, test = ds[:train_size], ds[train_size:]
+
+    epsilon = 1e-6  
+    train = train + epsilon # Add a small value to avoid zero values, box-cox transformation requires strictly positive values to create stazionarity
+    test = test + epsilon
+ 
+    model = ExponentialSmoothing(train, seasonal_periods=52, trend="add", seasonal="add",
+                               damped_trend=False, use_boxcox=True, initialization_method="estimated") 
+    hwfit = model.fit()
+    train_predict = hwfit.predict(0 , len(train) - 1) 
+    test_predict = hwfit.predict(len(train), len(train) + len(test) -1) 
+
+    forecast_accuracy(test_predict, test)
+
+    plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Holt Winter’s Exponential Smoothing')
+
+ 
+############################################################################################################
+### NEURAL MODELS METHODS
+
 ### MULTILAYER PERCEPTRON MODEL (LSTM)
 
 def sequential_lstm(ds, train_perc, look_back=1):
-    # Prepare data for the LSTM model
+    # Prepare data for the LSTM model (possible alternative, use TimeseriesGenerator from keras)
     def create_dataset(dataset, look_back=1):
         X, Y = [], []
         for i in range(len(dataset) - look_back - 1):
@@ -192,7 +224,8 @@ def main():
         print("1: ARIMA (auto-arima)")
         print("2: SARIMA (auto-arima)")
         print("3: Sarima Grid Search")
-        print("4: Sequential LSTM")
+        print("4: Holt Winter’s Exponential Smoothing (HWES)")
+        print("5: Sequential LSTM")
         method = int(input("Enter the method number (0 to terminate): "))
 
         if method == 1:
@@ -202,6 +235,8 @@ def main():
         elif method == 3:
             sarima_grid_search(ds, train_perc)
         elif method == 4:
+            holtwinters(ds, train_perc)
+        elif method == 5:
             sequential_lstm(ds, train_perc, look_back=52)
         elif method == 0:
             break
