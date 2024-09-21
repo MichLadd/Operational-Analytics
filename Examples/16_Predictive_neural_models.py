@@ -150,3 +150,8 @@ plt.show()
 # Models, heuristic choices
 # • Number of hidden layers: one, two, many
 # Activation function: logistic, hyperbolic tangent, linear (only in output nodes), ReLU, ...
+
+# Suggestions (MLP): 
+# • The size of the test set should be about 10% to 30% of that of the training set.
+# • To avoid overfitting, the test set size should be at least 5 times the number of network weights.
+# • In theory, a single hidden layer is enough to approximate any continuous function, but in practice a further hidden layer often helps. More than 4 layers (an input, an output and two hidden) can work wonders but usually only in very controlled contexts.

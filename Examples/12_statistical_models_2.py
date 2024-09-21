@@ -118,7 +118,7 @@ plt.title('SARIMAX prediction')
 plt.show()
 
 
-#Predictions out-of-sample:
+#Predictions out-of-sample (forecast):
 forewrap = sfit.get_forecast(steps=4)
 forecast_ci = forewrap.conf_int() 
 forecast_val = forewrap.predicted_mean
@@ -126,7 +126,7 @@ forecast_val = forewrap.predicted_mean
 forecast_ci = pd.DataFrame(forecast_ci)
 
 plt.plot(df.sales, label='Actual Sales')
-plt.fill_between(np.arange(len(df), len(df) + 4), forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='k', alpha=.25)
+plt.fill_between(np.arange(len(df), len(df) + 4), forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='k', alpha=.25) # questo serve per fare l'ombreggiatura
 plt.plot(np.arange(len(df), len(df) + 4), forecast_val, label='Forecast')
 plt.xlabel('Time')
 plt.ylabel('Sales')
