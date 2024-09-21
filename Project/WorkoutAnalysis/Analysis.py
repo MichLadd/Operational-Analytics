@@ -30,6 +30,8 @@ def forecast_accuracy(forecast, actual):
     mae = mean_absolute_error(forecast, actual) # MAE stands for Mean Absolute Error, which means how much the prediction deviates on average from the actual value
     mape = np.mean(np.abs(forecast - actual)/np.abs(actual)) # MAPE stands for Mean Absolute Percentage Error, which is a measure of the accuracy of a forecasting method in statistics; to calculate the mean absolute percentage error, the percentage difference between the predicted value and the actual value is calculated and the average of these differences is taken
 
+    print(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
+
     return({'mae': mae, 'rmse':rmse, 'mape': mape})
 
 def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, model_name):
@@ -59,6 +61,8 @@ def auto_arima(ds, train_perc, seasonal=True):
     test_predict, confint = model.predict(test.shape[0], return_conf_int=True) 
 
     train_size = len(train)
+
+    forecast_accuracy(test_predict, test)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='sarima')
@@ -114,10 +118,12 @@ def sarima_grid_search(ds, train_perc):
     train_predict = best_model.predict(start=0, end=train_size-1)
     test_predict = best_model.predict(test.shape[0], return_conf_int=True) 
     
+    forecast_accuracy(test_predict, test)
+
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search')
 
-### LSTM
+### MULTILAYER PERCEPTRON MODEL (LSTM)
 
 def sequential_lstm(ds, train_perc, look_back=1):
     # Prepare data for the LSTM model
@@ -169,20 +175,11 @@ def sequential_lstm(ds, train_perc, look_back=1):
     test_prd_y = test_predict.flatten()
     test_predict_start = len(train_predict) + (look_back)
     test_prd_x = np.arange(start=test_predict_start, stop=test_predict_start + len(test_prd_y))
+
+    forecast_accuracy(trainY[0], train_predict[:, 0])
+
     plot_data(ds, train_prd_x, train_prd_y,
                   test_prd_x, test_prd_y, 'LSTM')
-
-    # Calculate RMSE and MAE metrics
-    train_rmse = np.sqrt(mean_squared_error(trainY[0], train_predict[:, 0]))
-    train_mae = mean_absolute_error(trainY[0], train_predict[:, 0])
-    test_rmse = np.sqrt(mean_squared_error(testY[0], test_predict[:, 0]))
-    test_mae = mean_absolute_error(testY[0], test_predict[:, 0])
-
-    # Print the metrics
-    print(f"Train RMSE: {train_rmse}")
-    print(f"Train MAE: {train_mae}")
-    print(f"Test RMSE: {test_rmse}")
-    print(f"Test MAE: {test_mae}")
 
 # Main function
 
