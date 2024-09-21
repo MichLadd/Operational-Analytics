@@ -4,13 +4,12 @@ from statsmodels.tsa.stattools import acf
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 from pmdarima.arima import auto_arima
-
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0' # Suppress TensorFlow warnings
 
 def load_data():
     # Load the data
@@ -24,9 +23,9 @@ def load_data():
     col_num = int(input("Inserisci il numero della colonna: "))
     
     # Retrieve the column selected by the user
-    ds = df.iloc[:, col_num + 1] # +1 perchè salto la colonna della data
+    df = df.iloc[:, [0, col_num + 1]]
     
-    return ds
+    return df
 
 def forecast_accuracy(forecast, actual): 
     # Calculate RMSE and MAE metrics
@@ -208,17 +207,88 @@ def sequential_lstm(ds, train_perc, look_back=1):
     test_predict_start = len(train_predict) + (look_back)
     test_prd_x = np.arange(start=test_predict_start, stop=test_predict_start + len(test_prd_y))
 
-    forecast_accuracy(trainY[0], train_predict[:, 0])
+    forecast_accuracy(train_predict[:, 0], trainY[0])
 
     plot_data(ds, train_prd_x, train_prd_y,
                   test_prd_x, test_prd_y, 'LSTM')
 
+
+############################################################################################################
+## MACHINE LEARNING METHODS
+
+def create_features(df, label=None):
+    """
+    Create time series features based on the 'date' column.
+    """
+    df['date'] = pd.to_datetime(df['date'])
+    df['hour'] = df['date'].dt.hour
+    df['dayofweek'] = df['date'].dt.dayofweek
+    df['quarter'] = df['date'].dt.quarter
+    df['month'] = df['date'].dt.month
+    df['year'] = df['date'].dt.year
+    df['dayofyear'] = df['date'].dt.dayofyear
+    df['dayofmonth'] = df['date'].dt.day
+    df['weekofyear'] = df['date'].dt.isocalendar().week
+    X = df[['hour', 'dayofweek', 'quarter', 'month', 'year',
+            'dayofyear', 'dayofmonth', 'weekofyear']]
+    if label:
+        y = df[label]
+        return X, y
+    return X
+
+# Random Forest
+
+def random_forest(df, train_perc):
+    df.columns = ['date', 'value']
+    ds = df.iloc[:, 1]
+    
+    train_size = int(len(ds) * train_perc)
+
+    X, y = create_features(df, label='value')
+    trainX, testX, trainY, testY = train_test_split(X, y, test_size=(1-train_perc), shuffle=False)
+
+    model = RandomForestRegressor(n_estimators=500, random_state=42)
+    model.fit(trainX, trainY)
+
+    train_predict = model.predict(trainX)
+    test_predict = model.predict(testX)
+    
+    forecast_accuracy(train_predict, trainY)
+
+    plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
+                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Random Forest')
+
+
+# Gradient Boosting
+
+def gradient_boosting(df, train_perc):
+    df.columns = ['date', 'value']
+    ds = df.iloc[:, 1]
+    
+    train_size = int(len(ds) * train_perc)
+
+    X, y = create_features(df, label='value')
+    trainX, testX, trainY, testY = train_test_split(X, y, test_size=(1-train_perc), shuffle=False)
+
+    model = GradientBoostingRegressor(n_estimators=500, random_state=42)
+    model.fit(trainX, trainY)
+
+    train_predict = model.predict(trainX)
+    test_predict = model.predict(testX)
+    
+    forecast_accuracy(train_predict, trainY)
+
+    plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
+                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Gradient Boosting')
+
+
 # Main function
 
 def main():
-    ds = load_data()
+    df = load_data()
+    ds = df.iloc[:, 1]
     train_perc = 0.8 # consider asking the user
-
+    
     while True:
         print("Select the analysis method:")
         print("1: ARIMA (auto-arima)")
@@ -226,7 +296,10 @@ def main():
         print("3: Sarima Grid Search")
         print("4: Holt Winter’s Exponential Smoothing (HWES)")
         print("5: Sequential LSTM")
+        print("6: Random Forest")
+        print("7: Gradient Boosting")
         method = int(input("Enter the method number (0 to terminate): "))
+
 
         if method == 1:
             auto_arima(ds, train_perc, seasonal=False)
@@ -238,6 +311,10 @@ def main():
             holtwinters(ds, train_perc)
         elif method == 5:
             sequential_lstm(ds, train_perc, look_back=52)
+        elif method == 6:
+            random_forest(df, train_perc)
+        elif method == 7:
+            gradient_boosting(df, train_perc)
         elif method == 0:
             break
         else:
