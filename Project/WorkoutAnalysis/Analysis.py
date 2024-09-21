@@ -44,6 +44,8 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
     plt.grid(True)
     plt.show()
 
+### ARIMA
+
 def auto_arima(ds, train_perc, seasonal=True):
     train_size = int(len(ds) * train_perc)
     train, test = ds[:train_size], ds[train_size:]
@@ -54,13 +56,68 @@ def auto_arima(ds, train_perc, seasonal=True):
                        error_action='ignore',
                        suppress_warnings=True,
                        stepwise=True)
-    test_forecast, confint = model.predict(test.shape[0], return_conf_int=True) 
+    test_predict, confint = model.predict(test.shape[0], return_conf_int=True) 
 
     train_size = len(train)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
-              test_pred_x=np.arange(train_size, train_size + len(test_forecast)), test_pred_y=test_forecast, model_name='sarima')
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='sarima')
 
+### SARIMA Grid Search
+
+def sarima_grid_search(ds, train_perc):
+    def sarima_model(ds, order, seasonal_order):
+        model = SARIMAX(ds, order=order, seasonal_order=seasonal_order)
+        model_fit = model.fit(disp=False)
+        return model_fit
+    
+    train_size = int(len(ds) * train_perc)
+    train, test = ds[:train_size], ds[train_size:]
+
+    '''
+    p: Autoregressive order (AR) - number of lags in past data used to predict the current value.
+    d: Differencing - number of differences needed to make the series stationary.
+    q: Moving average order (MA) - number of past errors used to predict the current value.
+    P: Seasonal autoregressive order (SAR) - number of seasonal lags in past data.
+    D: Seasonal differencing - number of seasonal differences needed to make the series stationary.
+    Q: Seasonal moving average order (SMA) - number of past seasonal errors.
+    s: Seasonal period - length of the seasonal cycle (e.g., 12 for monthly data with annual seasonality).
+    '''
+    orders = [(0, 1, 1), (0, 1, 1), (0, 1, 2),(1, 1, 1),(1, 1, 2), (2, 1, 1), (2, 1, 2)]
+    seasonal_orders = [(1, 1, 1, 52), (1, 1, 0, 52), (0, 1, 1, 52), (1, 1, 1, 26), (1, 1, 0, 26), (0, 1, 1, 26)]
+
+    best_aic = float("inf")
+    best_order = None
+    best_seasonal_order = None
+    best_model = None
+
+    for order in orders:
+        for seasonal_order in seasonal_orders:
+            try:
+                model_fit = sarima_model(train, order, seasonal_order)
+                '''
+                Manual Grid Search:
+                try different parameter combinations and compare the results using AIC (Akaike Information Criterion)
+                '''
+                aic = model_fit.aic
+                if aic < best_aic:
+                    best_aic = aic
+                    best_order = order
+                    best_seasonal_order = seasonal_order
+                    best_model = model_fit
+            except:
+                continue
+
+    print(f"Best SARIMA model: Order={best_order}, Seasonal Order={best_seasonal_order}, AIC={best_aic}")
+    print(best_model.summary())
+    
+    train_predict = best_model.predict(start=0, end=train_size-1)
+    test_predict = best_model.predict(test.shape[0], return_conf_int=True) 
+    
+    plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search')
+
+### LSTM
 
 def sequential_lstm(ds, train_perc, look_back=1):
     # Prepare data for the LSTM model
@@ -127,6 +184,8 @@ def sequential_lstm(ds, train_perc, look_back=1):
     print(f"Test RMSE: {test_rmse}")
     print(f"Test MAE: {test_mae}")
 
+# Main function
+
 def main():
     ds = load_data()
     train_perc = 0.8 # consider asking the user
@@ -135,7 +194,8 @@ def main():
         print("Select the analysis method:")
         print("1: ARIMA (auto-arima)")
         print("2: SARIMA (auto-arima)")
-        print("3: Sequential LSTM")
+        print("3: Sarima Grid Search")
+        print("4: Sequential LSTM")
         method = int(input("Enter the method number (0 to terminate): "))
 
         if method == 1:
@@ -143,6 +203,8 @@ def main():
         elif method == 2:
             auto_arima(ds, train_perc, seasonal=True)
         elif method == 3:
+            sarima_grid_search(ds, train_perc)
+        elif method == 4:
             sequential_lstm(ds, train_perc, look_back=52)
         elif method == 0:
             break
