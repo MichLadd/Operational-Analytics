@@ -10,6 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 from pmdarima.arima import auto_arima
+import os
 
 def load_data(col_num = None):
     # Load the data
@@ -37,7 +38,8 @@ def forecast_accuracy(forecast, actual, model_name, save_data=False):
     print(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
 
     if save_data:
-        with open('metrics_{}.txt'.format(model_name), 'w') as f:
+        os.makedirs('AnalysisResults', exist_ok=True)
+        with open('AnalysisResults/metrics_{}.txt'.format(model_name), 'w') as f:
             f.write(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
 
     return({'mae': mae, 'rmse':rmse, 'mape': mape})
@@ -54,7 +56,8 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
     plt.grid(True)
     
     if save_data:
-        plt.savefig(f"{model_name}.png")
+        os.makedirs('AnalysisResults', exist_ok=True)
+        plt.savefig(f"AnalysisResults/{model_name}.png") # voglio salvarle in una sotto cartella plots quindi saveflg diventerebbe come segue: 
     
     if show_plot:
         plt.show()
@@ -79,8 +82,8 @@ def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=Fa
 
     train_size = len(train)
     
-    train_predict = model.predict(start=0, end=train_size-1)
-    test_predict = model.predict(train_size, train_size + len(test) -1)
+    train_predict, confint = model.predict(train.shape[0], return_conf_int=True)
+    test_predict, confint = model.predict(test.shape[0], return_conf_int=True)
 
     forecast_accuracy(train_predict, train, model_name='Sarima', save_data=save_data)
 
