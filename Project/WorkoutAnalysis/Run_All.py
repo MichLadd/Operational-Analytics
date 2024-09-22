@@ -11,7 +11,7 @@ def main():
     print("Esecuzione di SARIMA (auto-arima)...")
     Analysis.auto_arima_model(ds.copy(), train_perc, seasonal=True, show_plot=False, save_data=True)
 
-    '''print("Esecuzione di Sarima Grid Search...")
+    print("Esecuzione di Sarima Grid Search...")
     Analysis.sarima_grid_search(ds.copy(), train_perc, show_plot=False, save_data=True)
     
     print("Esecuzione di Holt Winter’s Exponential Smoothing (HWES)...")
@@ -24,7 +24,7 @@ def main():
     Analysis.random_forest(df.copy(), train_perc, show_plot=False, save_data=True)
     
     print("Esecuzione di Gradient Boosting...")
-    Analysis.gradient_boosting(df.copy(), train_perc, show_plot=False, save_data=True)'''
+    Analysis.gradient_boosting(df.copy(), train_perc, show_plot=False, save_data=True)
     
 if __name__ == '__main__':
     main()
