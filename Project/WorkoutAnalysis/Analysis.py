@@ -39,7 +39,7 @@ def forecast_accuracy(forecast, actual, model_name, save_data=False):
 
     if save_data:
         os.makedirs('AnalysisResults', exist_ok=True)
-        with open('AnalysisResults/metrics_{}.txt'.format(model_name), 'w') as f:
+        with open('AnalysisResults/{}_metrics.txt'.format(model_name), 'w') as f:
             f.write(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
 
     return({'mae': mae, 'rmse':rmse, 'mape': mape})
@@ -57,7 +57,7 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
     
     if save_data:
         os.makedirs('AnalysisResults', exist_ok=True)
-        plt.savefig(f"AnalysisResults/{model_name}.png") # voglio salvarle in una sotto cartella plots quindi saveflg diventerebbe come segue: 
+        plt.savefig(f"AnalysisResults/{model_name}_Plot.png") # voglio salvarle in una sotto cartella plots quindi saveflg diventerebbe come segue: 
     
     if show_plot:
         plt.show()
@@ -85,7 +85,7 @@ def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=Fa
     train_predict, confint = model.predict(train.shape[0], return_conf_int=True)
     test_predict, confint = model.predict(test.shape[0], return_conf_int=True)
 
-    forecast_accuracy(train_predict, train, model_name='Sarima', save_data=save_data)
+    forecast_accuracy(train_predict, train, model_name='Sarima (seasonal={})'.format(seasonal), save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima', show_plot=show_plot, save_data=save_data)
