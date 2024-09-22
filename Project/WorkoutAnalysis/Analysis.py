@@ -11,23 +11,24 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 from pmdarima.arima import auto_arima
 
-def load_data():
+def load_data(col_num = None):
     # Load the data
     df = pd.read_csv('./WorkoutData/preprocessed_data.csv')
 
-    print("Select a column to analyze:")
-    for i, column in enumerate(df.columns[1:]):
-        print(f"{i}: {column}")
-    
-    # Ask the user for the column number of the muscle group to analyze
-    col_num = int(input("Inserisci il numero della colonna: "))
-    
+    if not col_num:
+        print("Select a column to analyze:")
+        for i, column in enumerate(df.columns[1:]):
+            print(f"{i}: {column}")
+        
+        # Ask the user for the column number of the muscle group to analyze
+        col_num = int(input("Inserisci il numero della colonna: "))
+        
     # Retrieve the column selected by the user
     df = df.iloc[:, [0, col_num + 1]]
     
     return df
 
-def forecast_accuracy(forecast, actual): 
+def forecast_accuracy(forecast, actual, model_name, save_data=False): 
     # Calculate RMSE and MAE metrics
     rmse = np.sqrt(mean_squared_error(forecast, actual)) # RMSE stands for Root Mean Squared Error, which is a measure of data dispersion (the root brings the measure back to the same scale as the data)
     mae = mean_absolute_error(forecast, actual) # MAE stands for Mean Absolute Error, which means how much the prediction deviates on average from the actual value
@@ -35,9 +36,13 @@ def forecast_accuracy(forecast, actual):
 
     print(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
 
+    if save_data:
+        with open('metrics_{}.txt'.format(model_name), 'w') as f:
+            f.write(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
+
     return({'mae': mae, 'rmse':rmse, 'mape': mape})
 
-def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, model_name):
+def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, model_name, show_plot=True, save_data=False):
     plt.figure(figsize=(12, 6))
     plt.plot(dataset, label='Plot the results')
     plt.plot(train_pred_x, train_pred_y, label=f'Train predictions {model_name}')
@@ -47,14 +52,21 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
     plt.ylabel('Tonnage')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    
+    if save_data:
+        plt.savefig(f"{model_name}.png")
+    
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
 
 ############################################################################################################
 ### STATISTICAL METHODS
 
 ### ARIMA
 
-def auto_arima(ds, train_perc, seasonal=True):
+def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=False):
     train_size = int(len(ds) * train_perc)
     train, test = ds[:train_size], ds[train_size:]
     model = auto_arima(train, start_p=1, start_q=1, 
@@ -64,18 +76,20 @@ def auto_arima(ds, train_perc, seasonal=True):
                        error_action='ignore',
                        suppress_warnings=True,
                        stepwise=True)
-    test_predict, confint = model.predict(test.shape[0], return_conf_int=True) 
 
     train_size = len(train)
+    
+    train_predict = model.predict(start=0, end=train_size-1)
+    test_predict = model.predict(train_size, train_size + len(test) -1)
 
-    forecast_accuracy(test_predict, test)
+    forecast_accuracy(train_predict, train, model_name='Sarima', save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima')
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima', show_plot=show_plot, save_data=save_data)
 
 ### SARIMA Grid Search
 
-def sarima_grid_search(ds, train_perc):
+def sarima_grid_search(ds, train_perc, show_plot=True, save_data=False):
     def sarima_model(ds, order, seasonal_order):
         model = SARIMAX(ds, order=order, seasonal_order=seasonal_order)
         model_fit = model.fit(disp=False)
@@ -93,8 +107,8 @@ def sarima_grid_search(ds, train_perc):
     Q: Seasonal moving average order (SMA) - number of past seasonal errors.
     s: Seasonal period - length of the seasonal cycle (e.g., 12 for monthly data with annual seasonality).
     '''
-    orders = [(0, 1, 1), (0, 1, 1), (0, 1, 2),(1, 1, 1),(1, 1, 2), (2, 1, 1), (2, 1, 2)]
-    seasonal_orders = [(1, 1, 1, 52), (1, 1, 0, 52), (0, 1, 1, 52), (1, 1, 1, 26), (1, 1, 0, 26), (0, 1, 1, 26)]
+    orders = [(0, 1, 1),]# (0, 1, 1), (0, 1, 2),(1, 1, 1),(1, 1, 2), (2, 1, 1), (2, 1, 2)]
+    seasonal_orders = [(1, 1, 1, 52),]# (1, 1, 0, 52), (0, 1, 1, 52), (1, 1, 1, 26), (1, 1, 0, 26), (0, 1, 1, 26)]
 
     best_aic = float("inf")
     best_order = None
@@ -122,16 +136,16 @@ def sarima_grid_search(ds, train_perc):
     print(best_model.summary())
     
     train_predict = best_model.predict(start=0, end=train_size-1)
-    test_predict = best_model.predict(test.shape[0], return_conf_int=True) # test.shape[0] indica il numero di step da prevedere ovvero la lunghezza del test set
+    test_predict = best_model.predict(train_size, train_size + len(test) -1)
     
-    forecast_accuracy(test_predict, test)
+    forecast_accuracy(train_predict, train, model_name='Sarima Grid Search', save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search')
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search', show_plot=show_plot, save_data=save_data)
 
 ### Holt Winter’s Exponential Smoothing (HWES)
 
-def holtwinters(ds, train_perc):
+def holtwinters(ds, train_perc, show_plot=True, save_data=False):
     train_size = int(len(ds) * train_perc)
     train, test = ds[:train_size], ds[train_size:]
 
@@ -142,13 +156,13 @@ def holtwinters(ds, train_perc):
     model = ExponentialSmoothing(train, seasonal_periods=52, trend="add", seasonal="add",
                                damped_trend=False, use_boxcox=True, initialization_method="estimated") 
     hwfit = model.fit()
-    train_predict = hwfit.predict(0 , len(train) - 1) 
-    test_predict = hwfit.predict(len(train), len(train) + len(test) -1) 
+    train_predict = hwfit.predict(0 , train_size - 1) 
+    test_predict = hwfit.predict(train_size, train_size + len(test) -1) 
 
-    forecast_accuracy(test_predict, test)
+    forecast_accuracy(train_predict, train, model_name='Holt Winter’s Exponential Smoothing', save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Holt Winter’s Exponential Smoothing')
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Holt Winter’s Exponential Smoothing', show_plot=show_plot, save_data=save_data)
 
  
 ############################################################################################################
@@ -156,7 +170,7 @@ def holtwinters(ds, train_perc):
 
 ### MULTILAYER PERCEPTRON MODEL (LSTM)
 
-def sequential_lstm(ds, train_perc, look_back=1):
+def sequential_lstm(ds, train_perc, look_back=1, show_plot=True, save_data=False):
     # Prepare data for the LSTM model (possible alternative, use TimeseriesGenerator from keras)
     def create_dataset(dataset, look_back=1):
         X, Y = [], []
@@ -207,10 +221,10 @@ def sequential_lstm(ds, train_perc, look_back=1):
     test_predict_start = len(train_predict) + (look_back)
     test_prd_x = np.arange(start=test_predict_start, stop=test_predict_start + len(test_prd_y))
 
-    forecast_accuracy(train_predict[:, 0], trainY[0])
+    forecast_accuracy(train_predict[:, 0], trainY[0], model_name='LSTM', save_data=save_data)
 
     plot_data(ds, train_prd_x, train_prd_y,
-                  test_prd_x, test_prd_y, 'LSTM')
+                  test_prd_x, test_prd_y, 'LSTM', show_plot=show_plot, save_data=save_data)
 
 
 ############################################################################################################
@@ -238,7 +252,7 @@ def create_features(df, label=None):
 
 # Random Forest
 
-def random_forest(df, train_perc):
+def random_forest(df, train_perc, show_plot=True, save_data=False):
     df.columns = ['date', 'value']
     ds = df.iloc[:, 1]
     
@@ -253,15 +267,15 @@ def random_forest(df, train_perc):
     train_predict = model.predict(trainX)
     test_predict = model.predict(testX)
     
-    forecast_accuracy(train_predict, trainY)
+    forecast_accuracy(train_predict, trainY, model_name='Random Forest', save_data=save_data)
 
     plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
-                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Random Forest')
+                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Random Forest', show_plot=show_plot, save_data=save_data)
 
 
 # Gradient Boosting
 
-def gradient_boosting(df, train_perc):
+def gradient_boosting(df, train_perc, show_plot=True, save_data=False):
     df.columns = ['date', 'value']
     ds = df.iloc[:, 1]
     
@@ -276,10 +290,10 @@ def gradient_boosting(df, train_perc):
     train_predict = model.predict(trainX)
     test_predict = model.predict(testX)
     
-    forecast_accuracy(train_predict, trainY)
+    forecast_accuracy(train_predict, trainY, model_name='Gradient Boosting', save_data=save_data)
 
     plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
-                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Gradient Boosting')
+                np.arange(train_size, train_size + len(test_predict)), test_predict, 'Gradient Boosting', show_plot=show_plot, save_data=save_data)
 
 
 # Main function
@@ -302,9 +316,9 @@ def main():
 
 
         if method == 1:
-            auto_arima(ds, train_perc, seasonal=False)
+            auto_arima_model(ds, train_perc, seasonal=False)
         elif method == 2:
-            auto_arima(ds, train_perc, seasonal=True)
+            auto_arima_model(ds, train_perc, seasonal=True)
         elif method == 3:
             sarima_grid_search(ds, train_perc)
         elif method == 4:
