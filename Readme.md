@@ -1,7 +1,10 @@
 # Operational Analytics
 ## Project and Example from the Course
 
-The exam involves presenting a project that incorporates elements introduced during the course. It is essential to include considerations of data preprocessing, the implementation of at least two predictive algorithms (statistical, neural networks, regression trees), and a statistical comparison of the relative quality of the predictions.
+The exam involves presenting a project that incorporates elements introduced during the course. 
+
+I've conducted a comprehensive analysis of a gym workout dataset, focusing on data preprocessing, weekly tonnage aggregation, and applying various time series forecasting and machine learning models to evaluate and predict workout trends.
+
 In the 'Example' folder, there are all the examples I've made based on the course material.
 In the 'Project' folder, there is the program as well as a dataset example and a folder with all the reports (plots and accuracy metrics).
 
