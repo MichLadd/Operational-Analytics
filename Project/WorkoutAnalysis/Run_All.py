@@ -1,8 +1,9 @@
 import Analysis
 
 def main():
-    df = Analysis.load_data(1)
-    ds = df.iloc[:, 1]
+    column_position = 1
+    df = Analysis.load_data(column_position)
+    ds = df.iloc[:, column_position]
     train_perc = 0.8  
 
     print("Esecuzione di ARIMA (auto-arima)...")
@@ -17,6 +18,9 @@ def main():
     print("Esecuzione di Holt Winter’s Exponential Smoothing (HWES)...")
     Analysis.holtwinters(ds.copy(), train_perc, show_plot=False, save_data=True)
     
+    print("Esecuzione di TBATS...")
+    Analysis.tbats(ds.copy(), train_perc, show_plot=False, save_data=True)
+
     print("Esecuzione di Sequential LSTM...")
     Analysis.sequential_lstm(ds.copy(), train_perc, look_back=52, show_plot=False, save_data=True)
 

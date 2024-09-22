@@ -1,16 +1,18 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Disable Tensorflow warnings
+
 import numpy as np, pandas as pd 
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import acf 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from tbats import TBATS
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
+from keras.layers import LSTM, Dense
 from pmdarima.arima import auto_arima
-import os
 
 def load_data(col_num = None):
     # Load the data
@@ -70,6 +72,9 @@ def plot_data(dataset, train_pred_x, train_pred_y, test_pred_x, test_pred_y, mod
 ### ARIMA
 
 def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=False):
+
+    model_name = 'Sarima (seasonal={})'.format(seasonal)
+
     train_size = int(len(ds) * train_perc)
     train, test = ds[:train_size], ds[train_size:]
     model = auto_arima(train, start_p=1, start_q=1, 
@@ -85,10 +90,11 @@ def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=Fa
     train_predict, confint = model.predict(train.shape[0], return_conf_int=True)
     test_predict, confint = model.predict(test.shape[0], return_conf_int=True)
 
-    forecast_accuracy(train_predict, train, model_name='Sarima (seasonal={})'.format(seasonal), save_data=save_data)
+    forecast_accuracy(train_predict, train, model_name='{}_Train'.format(model_name), save_data=save_data)
+    forecast_accuracy(test_predict, test, model_name='{}_Test'.format(model_name), save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima', show_plot=show_plot, save_data=save_data)
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name=model_name, show_plot=show_plot, save_data=save_data)
 
 ### SARIMA Grid Search
 
@@ -141,7 +147,8 @@ def sarima_grid_search(ds, train_perc, show_plot=True, save_data=False):
     train_predict = best_model.predict(start=0, end=train_size-1)
     test_predict = best_model.predict(train_size, train_size + len(test) -1)
     
-    forecast_accuracy(train_predict, train, model_name='Sarima Grid Search', save_data=save_data)
+    forecast_accuracy(train_predict, train, model_name='Sarima Grid Search_Train', save_data=save_data)
+    forecast_accuracy(test_predict, test, model_name='Sarima Grid Search_Test', save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Sarima Grid Search', show_plot=show_plot, save_data=save_data)
@@ -162,10 +169,31 @@ def holtwinters(ds, train_perc, show_plot=True, save_data=False):
     train_predict = hwfit.predict(0 , train_size - 1) 
     test_predict = hwfit.predict(train_size, train_size + len(test) -1) 
 
-    forecast_accuracy(train_predict, train, model_name='Holt Winter’s Exponential Smoothing', save_data=save_data)
+    forecast_accuracy(train_predict, train, model_name='Holt Winter’s Exponential Smoothing_Train', save_data=save_data)
+    forecast_accuracy(test_predict, test, model_name='Holt Winter’s Exponential Smoothing_Test', save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
               test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='Holt Winter’s Exponential Smoothing', show_plot=show_plot, save_data=save_data)
+
+### TBATS
+
+def tbats(ds, train_perc, show_plot=True, save_data=False):    
+    train_size = int(len(ds) * train_perc)
+    train, test = ds[:train_size], ds[train_size:]
+
+    estimator = TBATS(seasonal_periods=[6, 12, 26, 52])
+    model = estimator.fit(train)
+    train_predict = model.y_hat
+    test_predict = model.forecast(steps=len(test))
+
+    if show_plot or save_data:
+        plot_data(ds, train.index, train_predict, test.index, test_predict, 'TBATS', show_plot, save_data)
+
+    forecast_accuracy(train_predict, train, 'TBATS_Train', save_data)
+    forecast_accuracy(test_predict, test, 'TBATS_Test', save_data)
+
+    plot_data(dataset=ds, train_pred_x=np.arange(len(train_predict)).reshape(-1, 1), train_pred_y=train_predict,
+            test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name='TBATS', show_plot=show_plot, save_data=save_data)
 
  
 ############################################################################################################
@@ -224,7 +252,8 @@ def sequential_lstm(ds, train_perc, look_back=1, show_plot=True, save_data=False
     test_predict_start = len(train_predict) + (look_back)
     test_prd_x = np.arange(start=test_predict_start, stop=test_predict_start + len(test_prd_y))
 
-    forecast_accuracy(train_predict[:, 0], trainY[0], model_name='LSTM', save_data=save_data)
+    forecast_accuracy(train_predict[:, 0], trainY[0], model_name='LSTM_Train', save_data=save_data)
+    forecast_accuracy(test_predict[:, 0], testY[0], model_name='LSTM_Test', save_data=save_data)
 
     plot_data(ds, train_prd_x, train_prd_y,
                   test_prd_x, test_prd_y, 'LSTM', show_plot=show_plot, save_data=save_data)
@@ -270,7 +299,8 @@ def random_forest(df, train_perc, show_plot=True, save_data=False):
     train_predict = model.predict(trainX)
     test_predict = model.predict(testX)
     
-    forecast_accuracy(train_predict, trainY, model_name='Random Forest', save_data=save_data)
+    forecast_accuracy(train_predict, trainY, model_name='Random Forest_Train', save_data=save_data)
+    forecast_accuracy(test_predict, testY, model_name='Random Forest_Test', save_data=save_data)
 
     plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
                 np.arange(train_size, train_size + len(test_predict)), test_predict, 'Random Forest', show_plot=show_plot, save_data=save_data)
@@ -293,7 +323,8 @@ def gradient_boosting(df, train_perc, show_plot=True, save_data=False):
     train_predict = model.predict(trainX)
     test_predict = model.predict(testX)
     
-    forecast_accuracy(train_predict, trainY, model_name='Gradient Boosting', save_data=save_data)
+    forecast_accuracy(train_predict, trainY, model_name='Gradient Boosting_Train', save_data=save_data)
+    forecast_accuracy(test_predict, testY, model_name='Gradient Boosting_Test', save_data=save_data)
 
     plot_data(ds, np.arange(len(train_predict)).reshape(-1, 1), train_predict,
                 np.arange(train_size, train_size + len(test_predict)), test_predict, 'Gradient Boosting', show_plot=show_plot, save_data=save_data)
@@ -312,9 +343,10 @@ def main():
         print("2: SARIMA (auto-arima)")
         print("3: Sarima Grid Search")
         print("4: Holt Winter’s Exponential Smoothing (HWES)")
-        print("5: Sequential LSTM")
-        print("6: Random Forest")
-        print("7: Gradient Boosting")
+        print("5: TBATS")
+        print("6: Sequential LSTM")
+        print("7: Random Forest")
+        print("8: Gradient Boosting")
         method = int(input("Enter the method number (0 to terminate): "))
 
 
@@ -327,10 +359,12 @@ def main():
         elif method == 4:
             holtwinters(ds, train_perc)
         elif method == 5:
-            sequential_lstm(ds, train_perc, look_back=52)
+            tbats(ds, train_perc)
         elif method == 6:
-            random_forest(df, train_perc)
+            sequential_lstm(ds, train_perc, look_back=52)
         elif method == 7:
+            random_forest(df, train_perc)
+        elif method == 8:
             gradient_boosting(df, train_perc)
         elif method == 0:
             break
