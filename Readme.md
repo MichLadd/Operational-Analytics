@@ -24,9 +24,9 @@ Here are all the accuracy metrics from the run on the first muscle group:
 ## Holt Winter’s Exponential Smoothing_Train_metrics.txt
  - RMSE: 736.5674601864371 , MAE: 472.80596127493146, MAPE: 4385064.854767861
 ## LSTM_Test_metrics.txt
- - RMSE: 1797.5510154367585 , MAE: 1353.9038743176673, MAPE: nan
+ - RMSE: 641.9784008111827 , MAE: 523.22428809569, MAPE: nan
 ## LSTM_Train_metrics.txt
- - RMSE: 1407.3105784298468 , MAE: 1076.4538164538164, MAPE: nan
+ - RMSE: 1337.2930302946627 , MAE: 1111.2505012517795, MAPE: nan
 ## Random Forest_Test_metrics.txt
  - RMSE: 1224.8929850261875 , MAE: 1035.0343783783785, MAPE: inf
 ## Random Forest_Train_metrics.txt
