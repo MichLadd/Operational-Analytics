@@ -33,8 +33,8 @@ def load_data(col_num = None):
 
 def forecast_accuracy(forecast, actual, model_name, save_data=False): 
     # Calculate RMSE and MAE metrics
-    rmse = np.sqrt(mean_squared_error(forecast, actual)) # RMSE stands for Root Mean Squared Error, which is a measure of data dispersion (the root brings the measure back to the same scale as the data)
-    mae = mean_absolute_error(forecast, actual) # MAE stands for Mean Absolute Error, which means how much the prediction deviates on average from the actual value
+    rmse = np.sqrt(mean_squared_error(actual, forecast)) # RMSE stands for Root Mean Squared Error, which is a measure of data dispersion (the root brings the measure back to the same scale as the data)
+    mae = mean_absolute_error(actual, forecast) # MAE stands for Mean Absolute Error, which means how much the prediction deviates on average from the actual value
     mape = np.mean(np.abs(forecast - actual)/np.abs(actual)) # MAPE stands for Mean Absolute Percentage Error, which is a measure of the accuracy of a forecasting method in statistics; to calculate the mean absolute percentage error, the percentage difference between the predicted value and the actual value is calculated and the average of these differences is taken
 
     print(f"RMSE: {rmse} , MAE: {mae}, MAPE: {mape}")
