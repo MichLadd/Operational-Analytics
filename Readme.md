@@ -32,13 +32,13 @@ Here are all the accuracy metrics from the run on the first muscle group:
 ## Random Forest_Train_metrics.txt
  - RMSE: 324.8784028032888 , MAE: 255.6375776454422, MAPE: inf
 ## Sarima (seasonal=False)_Test_metrics.txt
- - RMSE: 1247.8294028210692 , MAE: 1000.5920554751542, MAPE: inf
+ - RMSE: 461.1628665936784 , MAE: 374.756860888963, MAPE: nan
 ## Sarima (seasonal=False)_Train_metrics.txt
- - RMSE: 803.2092677513716 , MAE: 642.4319616574144, MAPE: nan
+ - RMSE: 646.4711243094675 , MAE: 509.89752996458105, MAPE: inf
 ## Sarima (seasonal=True)_Test_metrics.txt
- - RMSE: 1417.736901055506 , MAE: 1100.0858558009602, MAPE: inf
+ - RMSE: 595.134889357341 , MAE: 493.5008610185841, MAPE: nan
 ## Sarima (seasonal=True)_Train_metrics.txt
- - RMSE: 1129.7818213275848 , MAE: 936.6820183245433, MAPE: nan
+ - RMSE: 771.9440170036091 , MAE: 586.6534519710009, MAPE: inf
 ## Sarima Grid Search_Test_metrics.txt
  - RMSE: 1357.9569960944302 , MAE: 1068.4162064011687, MAPE: inf
 ## Sarima Grid Search_Train_metrics.txt
