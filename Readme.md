@@ -81,10 +81,6 @@ To identify the best models overall, we consider the performance on both the tra
  - Train RMSE: 324.88, Train MAE: 255.64
  - Test RMSE: 1224.89, Test MAE: 1035.03
 
-## TBATS:
- - Train RMSE: 764.61, Train MAE: 617.82
- - Test RMSE: 1207.95, Test MAE: 951.67
-
 ### Summary
 - **Best on Training Set**: Gradient Boosting, Random Forest
 - **Best on Test Set**: TBATS, Random Forest
