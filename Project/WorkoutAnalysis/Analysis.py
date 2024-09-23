@@ -77,8 +77,8 @@ def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=Fa
 
     train_size = int(len(ds) * train_perc)
     train, test = ds[:train_size], ds[train_size:]
-    model = auto_arima(train, start_p=1, start_q=1, 
-                       test='adf', max_p=1, max_q=1, m=52, # m=52 for annual weeks
+    model = auto_arima(train, start_p=0, start_q=0, 
+                       test='adf', max_p=2, max_q=2, m=52, # m=52 for annual weeks
                        start_P=0, seasonal=seasonal,
                        d=None, D=1, trace=True,
                        error_action='ignore',
@@ -94,7 +94,7 @@ def auto_arima_model(ds, train_perc, seasonal=True, show_plot=True, save_data=Fa
     forecast_accuracy(test_predict, test, model_name='{}_Test'.format(model_name), save_data=save_data)
 
     plot_data(dataset=ds, train_pred_x=np.arange(train_size).reshape(-1, 1), train_pred_y=train,
-              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name=model_name, show_plot=show_plot, save_data=save_data)
+              test_pred_x=np.arange(train_size, train_size + len(test_predict)), test_pred_y=test_predict, model_name=model_name    , show_plot=show_plot, save_data=save_data)
 
 ### SARIMA Grid Search
 
@@ -185,10 +185,7 @@ def tbats(ds, train_perc, show_plot=True, save_data=False):
     model = estimator.fit(train)
     train_predict = model.y_hat
     test_predict = model.forecast(steps=len(test))
-
-    if show_plot or save_data:
-        plot_data(ds, train.index, train_predict, test.index, test_predict, 'TBATS', show_plot, save_data)
-
+    
     forecast_accuracy(train_predict, train, 'TBATS_Train', save_data)
     forecast_accuracy(test_predict, test, 'TBATS_Test', save_data)
 
