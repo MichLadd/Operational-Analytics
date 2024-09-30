@@ -13,6 +13,9 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from pmdarima.arima import auto_arima
+import tensorflow as tf
+
+np.random.seed(550)
 
 def load_data(col_num = None):
     # Load the data
